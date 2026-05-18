@@ -1,0 +1,42 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     * Crée la table articles avec slug unique, statut, compteur de vues et indexes optimisés.
+     */
+    public function up(): void
+    {
+        Schema::create('articles', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->string('title');
+            $table->string('slug')->unique();
+            $table->text('excerpt')->nullable();
+            $table->longText('content');
+            $table->string('cover_image')->nullable();
+            $table->enum('status', ['published', 'draft'])->default('draft');
+            $table->unsignedBigInteger('views_count')->default(0);
+            $table->timestamp('published_at')->nullable();
+            $table->timestamps();
+
+            // Indexes pour les requêtes fréquentes
+            $table->index('slug');
+            $table->index('status');
+            $table->index('published_at');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('articles');
+    }
+};
