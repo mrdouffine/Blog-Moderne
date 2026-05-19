@@ -20,6 +20,7 @@ return new class extends Migration
             $table->text('excerpt')->nullable();
             $table->longText('content');
             $table->string('cover_image')->nullable();
+            $table->string('category')->nullable()->default('Général');
             $table->enum('status', ['published', 'draft'])->default('draft');
             $table->unsignedBigInteger('views_count')->default(0);
             $table->timestamp('published_at')->nullable();

@@ -28,6 +28,7 @@ class UpdateArticleRequest extends FormRequest
             'title'       => ['sometimes', 'string', 'max:255'],
             'content'     => ['sometimes', 'string'],
             'excerpt'     => ['nullable', 'string', 'max:500'],
+            'category'    => ['nullable', 'string', 'max:100'],
             'status'      => ['nullable', Rule::in(['draft', 'published', 'archived'])],
             'cover_image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
             'tags'        => ['nullable', 'array'],

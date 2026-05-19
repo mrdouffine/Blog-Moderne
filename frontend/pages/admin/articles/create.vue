@@ -85,6 +85,7 @@ const saveDraft = async () => {
     fd.append("title", title.value);
     fd.append("content", content.value);
     fd.append("excerpt", excerpt.value);
+    fd.append("category", category.value);
     fd.append("status", "draft");
     if (coverImageFile.value) fd.append("cover_image", coverImageFile.value);
     try {
@@ -427,10 +428,15 @@ const publish = async () => {
                             v-model="category"
                             class="w-full bg-surface-container border border-outline-variant rounded-lg p-xs font-body-md text-body-md focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
                         >
-                            <option>Technologie</option>
-                            <option>Design</option>
-                            <option>Culture</option>
-                            <option>Lifestyle</option>
+                            <option>Histoire & Société</option>
+                            <option>Gastronomie</option>
+                            <option>Voyage & Nature</option>
+                            <option>Cuisine Végétale</option>
+                            <option>Économie</option>
+                            <option>Nutrition</option>
+                            <option>Santé Intime</option>
+                            <option>Jardinage</option>
+                            <option>Général</option>
                         </select>
                     </div>
 
@@ -660,10 +666,15 @@ const publish = async () => {
                         v-model="category"
                         class="w-full bg-surface-container border border-outline-variant rounded-lg p-xs font-body-md text-body-md focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
                     >
-                        <option>Technologie</option>
-                        <option>Design</option>
-                        <option>Culture</option>
-                        <option>Lifestyle</option>
+                        <option>Histoire & Société</option>
+                        <option>Gastronomie</option>
+                        <option>Voyage & Nature</option>
+                        <option>Cuisine Végétale</option>
+                        <option>Économie</option>
+                        <option>Nutrition</option>
+                        <option>Santé Intime</option>
+                        <option>Jardinage</option>
+                        <option>Général</option>
                     </select>
                 </div>
 

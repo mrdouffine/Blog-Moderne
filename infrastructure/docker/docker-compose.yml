@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ../../
+      dockerfile: infrastructure/docker/backend/Dockerfile
+    container_name: blog-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../../backend:/var/www/backend
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_CONNECTION=sqlite
+      - DB_DATABASE=/var/www/backend/database/database.sqlite
+    networks:
+      - blog-network
+
+  frontend:
+    build:
+      context: ../../
+      dockerfile: infrastructure/docker/frontend/Dockerfile
+    container_name: blog-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../../frontend:/app
+    environment:
+      - NUXT_API_URL=http://backend:8000/api
+      - NUXT_PUBLIC_API_URL=http://localhost:8000/api
+      - NODE_ENV=development
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+    networks:
+      - blog-network
+    depends_on:
+      - backend
+
+networks:
+  blog-network:
+    driver: bridge

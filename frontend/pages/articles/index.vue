@@ -8,19 +8,40 @@ useSeoMeta({
 })
 
 const { articles, loading, pagination, fetchArticles } = useArticles()
+const route    = useRoute()
+const router   = useRouter()
 
 // Paramètres de filtrage et pagination
-const search   = ref('')
+const search   = ref((route.query.search as string) || '')
+const category = ref((route.query.category as string) || '')
 const page     = ref(1)
 const perPage  = ref(9)
 
 const perPageOptions = [6, 9, 12, 18]
+
+const categories = [
+  { name: 'Tous', value: '' },
+  { name: 'Histoire & Société', value: 'Histoire & Société' },
+  { name: 'Gastronomie', value: 'Gastronomie' },
+  { name: 'Voyage & Nature', value: 'Voyage & Nature' },
+  { name: 'Cuisine Végétale', value: 'Cuisine Végétale' },
+  { name: 'Économie', value: 'Économie' },
+  { name: 'Nutrition', value: 'Nutrition' },
+  { name: 'Santé Intime', value: 'Santé Intime' },
+  { name: 'Jardinage', value: 'Jardinage' },
+  { name: 'Foot', value: 'Foot' },
+  { name: 'Fiction', value: 'Fiction' },
+  { name: 'Amour', value: 'Amour' },
+  { name: 'Baiser', value: 'Baiser' },
+  { name: 'Penetration', value: 'Penetration' },
+]
 
 // Charge les articles (only published côté public)
 const load = async () => {
   await fetchArticles({
     status:   'published',
     search:   search.value || undefined,
+    category: category.value || undefined,
     page:     page.value,
     per_page: perPage.value,
   })
@@ -31,7 +52,25 @@ let searchTimer: ReturnType<typeof setTimeout>
 const onSearchInput = () => {
   clearTimeout(searchTimer)
   page.value = 1
-  searchTimer = setTimeout(load, 400)
+  searchTimer = setTimeout(() => {
+    const query: Record<string, string> = {}
+    if (search.value) query.search = search.value
+    if (category.value) query.category = category.value
+    router.push({ query })
+    load()
+  }, 400)
+}
+
+const setCategory = (catVal: string) => {
+  category.value = catVal
+  page.value = 1
+  
+  const query: Record<string, string> = {}
+  if (search.value) query.search = search.value
+  if (category.value) query.category = category.value
+  router.push({ query })
+  
+  load()
 }
 
 const onPageChange = (p: number) => {
@@ -44,6 +83,16 @@ const onPerPageChange = () => {
   page.value = 1
   load()
 }
+
+// Watch de la recherche / du route query
+watch(
+  () => route.query,
+  (newQuery) => {
+    search.value = (newQuery.search as string) || ''
+    category.value = (newQuery.category as string) || ''
+    load()
+  }
+)
 
 // Charge initialement
 await load()
@@ -59,7 +108,7 @@ await load()
     </div>
 
     <!-- Barre de filtres -->
-    <div class="flex flex-col sm:flex-row gap-3 mb-8">
+    <div class="flex flex-col sm:flex-row gap-3 mb-6">
       <!-- Recherche -->
       <div class="relative flex-1">
         <svg
@@ -88,6 +137,23 @@ await load()
       >
         <option v-for="n in perPageOptions" :key="n" :value="n">{{ n }} par page</option>
       </select>
+    </div>
+
+    <!-- Capsules de Catégories -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-4 mb-8 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+      <button
+        v-for="cat in categories"
+        :key="cat.name"
+        @click="setCategory(cat.value)"
+        :class="[
+          'px-4 py-2 rounded-full font-medium text-sm transition-all whitespace-nowrap border',
+          category === cat.value
+            ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
+            : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:text-gray-900'
+        ]"
+      >
+        {{ cat.name }}
+      </button>
     </div>
 
     <!-- Liste d'articles -->

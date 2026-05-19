@@ -26,6 +26,7 @@ class StoreArticleRequest extends FormRequest
             'title'       => ['required', 'string', 'max:255'],
             'content'     => ['required', 'string'],
             'excerpt'     => ['nullable', 'string', 'max:500'],
+            'category'    => ['nullable', 'string', 'max:100'],
             'status'      => ['nullable', Rule::in(['draft', 'published', 'archived'])],
             'cover_image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'], // 5 Mo max
             'tags'        => ['nullable', 'array'],

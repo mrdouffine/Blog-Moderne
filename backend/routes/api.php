@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CommentController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\NewsletterController;
+use App\Http\Controllers\Api\StatsController;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use Illuminate\Support\Facades\Route;
 
@@ -24,11 +25,15 @@ use Illuminate\Support\Facades\Route;
 // AUTH
 // =============================================================================
 Route::prefix('auth')->group(function () {
-    // Inscription d'un nouvel utilisateur
-    Route::post('/register', [AuthController::class, 'register']);
+    // Inscription d'un nouvel utilisateur (avec rate limiting pour éviter le brute force)
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
 
-    // Connexion et récupération du token
-    Route::post('/login', [AuthController::class, 'login']);
+    // Connexion et récupération du token (avec rate limiting pour éviter le brute force)
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+
+    // Authentification Sociale (OAuth)
+    Route::get('/{provider}/redirect', [\App\Http\Controllers\Api\SocialAuthController::class, 'redirectToProvider']);
+    Route::get('/{provider}/callback', [\App\Http\Controllers\Api\SocialAuthController::class, 'handleProviderCallback']);
 
     // Routes protégées par Sanctum
     Route::middleware('auth:sanctum')->group(function () {
@@ -75,7 +80,7 @@ Route::prefix('articles')->group(function () {
 Route::prefix('comments')->middleware('auth:sanctum')->group(function () {
     Route::put('/{comment}', [CommentController::class, 'update']);
     Route::delete('/{comment}', [CommentController::class, 'destroy']);
-    Route::patch('/{comment}/approve', [CommentController::class, 'approve']);
+    Route::patch('/{comment}/approve', [CommentController::class, 'approve'])->middleware(EnsureUserIsAdmin::class);
 });
 
 // =============================================================================
@@ -90,11 +95,20 @@ Route::prefix('media')->middleware('auth:sanctum')->group(function () {
 // NEWSLETTER
 // =============================================================================
 Route::prefix('newsletter')->group(function () {
-    // Routes publiques : abonnement / désabonnement
-    Route::post('/subscribe', [NewsletterController::class, 'subscribe']);
-    Route::post('/unsubscribe', [NewsletterController::class, 'unsubscribe']);
+    // Routes publiques : abonnement / désabonnement (avec rate limiting contre le spam)
+    Route::post('/subscribe', [NewsletterController::class, 'subscribe'])->middleware('throttle:5,1');
+    Route::post('/unsubscribe', [NewsletterController::class, 'unsubscribe'])->middleware('throttle:5,1');
 
     // Route admin : liste des abonnés
     Route::middleware(['auth:sanctum', EnsureUserIsAdmin::class])
         ->get('/subscribers', [NewsletterController::class, 'subscribers']);
+});
+
+// =============================================================================
+// ADMIN STATS + COMMENTS + MEDIAS
+// =============================================================================
+Route::prefix('admin')->middleware(['auth:sanctum', EnsureUserIsAdmin::class])->group(function () {
+    Route::get('/stats',    [StatsController::class,  'index']);
+    Route::get('/comments', [CommentController::class, 'adminIndex']);
+    Route::get('/medias',   [ArticleController::class, 'mediasIndex']);
 });

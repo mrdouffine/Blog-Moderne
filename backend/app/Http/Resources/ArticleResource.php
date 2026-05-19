@@ -40,11 +40,12 @@ class ArticleResource extends JsonResource
             'content'        => $this->when(
                 // Le contenu complet est inclus uniquement sur les requêtes de détail
                 $request->routeIs('*.show') || $this->relationLoaded('comments'),
-                $this->content
+                $this->content ? (string) \Illuminate\Support\Str::markdown($this->content) : ''
             ),
             'status'         => $this->status,
+            'category'       => $this->category ?? 'Général',
             'cover_image'    => $this->cover_image
-                ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->cover_image)
+                ? (filter_var($this->cover_image, FILTER_VALIDATE_URL) ? $this->cover_image : \Illuminate\Support\Facades\Storage::disk('public')->url($this->cover_image))
                 : null,
             'views_count'    => $this->views_count,
             'comments_count' => $this->whenCounted('comments'),

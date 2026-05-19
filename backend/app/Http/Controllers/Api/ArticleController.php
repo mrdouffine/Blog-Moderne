@@ -29,7 +29,7 @@ class ArticleController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $filters = $request->only(['search', 'status', 'per_page']);
+        $filters = $request->only(['search', 'status', 'per_page', 'category']);
 
         $paginator = $this->articleService->getAllPaginated($filters);
 
@@ -45,6 +45,24 @@ class ArticleController extends Controller
             ],
         ], 200);
     }
+
+    /**
+     * Retourne les articles ayant une image de couverture (admin — médiathèque).
+     */
+    public function mediasIndex(): JsonResponse
+    {
+        $articles = Article::whereNotNull('cover_image')
+            ->select(['id', 'title', 'slug', 'cover_image'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data'    => $articles,
+            'message' => 'Médias récupérés.',
+        ], 200);
+    }
+
 
     /**
      * Retourne le détail d'un article par son slug et incrémente le compteur de vues.
@@ -92,8 +110,8 @@ class ArticleController extends Controller
      */
     public function update(UpdateArticleRequest $request, Article $article): JsonResponse
     {
-        // Vérification de la propriété : seul l'auteur peut modifier son article
-        if ($request->user()->id !== $article->user_id) {
+        // Vérification de la propriété : seul l'auteur ou un admin peut modifier l'article
+        if ($request->user()->id !== $article->user_id && $request->user()->role !== 'admin') {
             return response()->json([
                 'success' => false,
                 'data'    => null,
@@ -119,7 +137,8 @@ class ArticleController extends Controller
      */
     public function destroy(Request $request, Article $article): JsonResponse
     {
-        if ($request->user()->id !== $article->user_id) {
+        // Autorisé pour le propriétaire ou un administrateur
+        if ($request->user()->id !== $article->user_id && $request->user()->role !== 'admin') {
             return response()->json([
                 'success' => false,
                 'data'    => null,
@@ -145,7 +164,8 @@ class ArticleController extends Controller
      */
     public function publish(Request $request, Article $article): JsonResponse
     {
-        if ($request->user()->id !== $article->user_id) {
+        // Autorisé pour le propriétaire ou un administrateur
+        if ($request->user()->id !== $article->user_id && $request->user()->role !== 'admin') {
             return response()->json([
                 'success' => false,
                 'data'    => null,
@@ -171,7 +191,8 @@ class ArticleController extends Controller
      */
     public function draft(Request $request, Article $article): JsonResponse
     {
-        if ($request->user()->id !== $article->user_id) {
+        // Autorisé pour le propriétaire ou un administrateur
+        if ($request->user()->id !== $article->user_id && $request->user()->role !== 'admin') {
             return response()->json([
                 'success' => false,
                 'data'    => null,

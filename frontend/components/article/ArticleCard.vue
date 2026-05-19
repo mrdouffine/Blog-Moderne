@@ -32,11 +32,11 @@ const shortMeta = computed(() => {
         <!-- Image de couverture -->
         <NuxtLink
             :to="`/articles/${article.slug}`"
-            class="aspect-video overflow-hidden block"
+            class="aspect-video overflow-hidden block bg-surface-container-highest"
         >
             <img
                 :src="coverImage"
-                :alt="article.title"
+                alt=""
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 loading="lazy"
             />

@@ -17,9 +17,7 @@ export default defineNuxtConfig({
   // Variables d'environnement accessibles côté client
   // ---------------------------------------------------------------------------
   runtimeConfig: {
-    // Variables privées (serveur uniquement, non exposées au client)
-    // apiSecret: '',
-
+    apiUrl: process.env.NUXT_API_URL ?? "http://localhost:8000/api",
     // Variables publiques (exposées au client via useRuntimeConfig().public)
     public: {
       /**
@@ -118,6 +116,6 @@ export default defineNuxtConfig({
   // Dev tools (désactivé en production automatiquement)
   // ---------------------------------------------------------------------------
   devtools: {
-    enabled: true,
+    enabled: false,
   },
 });

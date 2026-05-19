@@ -66,32 +66,11 @@ await fetchSubscribers({ per_page: 10 });
             </h2>
             <nav class="flex gap-sm mt-1 text-on-surface-variant font-label-sm">
                 <span class="text-primary font-bold border-b-2 border-primary"
-                    >Dashboard</span
-                >
-                <span
-                    class="hover:text-primary cursor-pointer transition-colors"
-                    >Campagnes</span
-                >
-                <span
-                    class="hover:text-primary cursor-pointer transition-colors"
-                    >Paramètres</span
+                    >Abonnés</span
                 >
             </nav>
         </div>
 
-        <div class="flex items-center gap-md">
-            <span
-                class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary"
-            >
-                notifications
-            </span>
-            <button
-                class="bg-primary-container text-on-primary-container px-sm py-xs rounded-lg font-label-sm flex items-center gap-xs hover:opacity-90 transition-opacity"
-            >
-                <span class="material-symbols-outlined text-[18px]">add</span>
-                Créer une campagne
-            </button>
-        </div>
     </header>
 
     <!-- ══════════════════════════════════════════════════════════
@@ -183,7 +162,7 @@ await fetchSubscribers({ per_page: 10 });
            SECTION LISTE ABONNÉS (7 colonnes)
       ════════════════════════════════════════════════════ -->
             <div
-                class="lg:col-span-7 bg-surface-container-lowest rounded-xl border border-outline-variant/10 overflow-hidden"
+                class="lg:col-span-12 bg-surface-container-lowest rounded-xl border border-outline-variant/10 overflow-hidden"
             >
                 <!-- Header section -->
                 <div
@@ -292,7 +271,7 @@ await fetchSubscribers({ per_page: 10 });
                                 <td
                                     class="px-md py-sm hidden sm:table-cell text-on-surface-variant text-sm"
                                 >
-                                    {{ formattedDate(sub.created_at) }}
+                                    {{ formattedDate(sub.subscribed_at) }}
                                 </td>
 
                                 <!-- Statut -->
@@ -325,167 +304,11 @@ await fetchSubscribers({ per_page: 10 });
                     </table>
                 </div>
 
-                <!-- Footer table -->
-                <div
-                    class="p-sm bg-surface-container-low/30 border-t border-outline-variant/10 text-center"
-                >
-                    <button
-                        class="text-primary font-label-sm hover:underline transition-all"
-                    >
-                        Voir tous les abonnés
-                    </button>
-                </div>
+                <!-- Footer table removed -->
             </div>
             <!-- /Section liste abonnés -->
 
-            <!-- ════════════════════════════════════════════════════
-           SECTION COMPOSER (5 colonnes)
-      ════════════════════════════════════════════════════ -->
-            <div class="lg:col-span-5 flex flex-col gap-md">
-                <!-- Carte envoi -->
-                <div
-                    class="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-md"
-                >
-                    <h4
-                        class="font-headline-md text-headline-md text-on-surface mb-md"
-                    >
-                        Nouvel envoi
-                    </h4>
-
-                    <div class="flex flex-col gap-sm">
-                        <!-- Objet du mail -->
-                        <div class="flex flex-col gap-xs">
-                            <label class="font-label-sm text-on-surface-variant"
-                                >Objet du mail</label
-                            >
-                            <input
-                                v-model="subject"
-                                type="text"
-                                placeholder="Votre objet ici…"
-                                class="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl px-md py-sm font-body-md focus:ring-2 focus:ring-primary outline-none text-on-surface placeholder:text-on-surface-variant/60 transition-shadow"
-                            />
-                        </div>
-
-                        <!-- Destinataires -->
-                        <div class="flex flex-col gap-xs">
-                            <label class="font-label-sm text-on-surface-variant"
-                                >Destinataires</label
-                            >
-                            <select
-                                v-model="recipient"
-                                class="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl px-md py-sm font-body-md focus:ring-2 focus:ring-primary outline-none text-on-surface appearance-none cursor-pointer transition-shadow"
-                            >
-                                <option value="all">
-                                    Tous les abonnés actifs
-                                </option>
-                                <option value="new">Nouveaux ce mois</option>
-                                <option value="inactive">
-                                    Inactifs uniquement
-                                </option>
-                            </select>
-                        </div>
-
-                        <!-- Contenu / éditeur -->
-                        <div class="flex flex-col gap-0">
-                            <label
-                                class="font-label-sm text-on-surface-variant mb-xs"
-                                >Contenu</label
-                            >
-                            <div
-                                class="rounded-xl border border-outline-variant/30 overflow-hidden"
-                            >
-                                <!-- Toolbar -->
-                                <div
-                                    class="bg-surface-container-low p-xs flex gap-xs border-b border-outline-variant/20"
-                                >
-                                    <button
-                                        v-for="icon in [
-                                            'format_bold',
-                                            'format_italic',
-                                            'link',
-                                            'image',
-                                            'format_list_bulleted',
-                                        ]"
-                                        :key="icon"
-                                        class="material-symbols-outlined text-[20px] text-on-surface-variant hover:text-primary hover:bg-surface-container rounded p-0.5 transition-colors"
-                                        :title="icon.replace(/_/g, ' ')"
-                                    >
-                                        {{ icon }}
-                                    </button>
-                                </div>
-                                <!-- Zone de saisie -->
-                                <textarea
-                                    v-model="content"
-                                    rows="8"
-                                    placeholder="Rédigez le contenu de votre email…"
-                                    class="w-full bg-surface border-none focus:ring-0 p-md font-body-md resize-none text-on-surface placeholder:text-on-surface-variant/50 outline-none block"
-                                />
-                            </div>
-                        </div>
-
-                        <!-- Footer actions -->
-                        <div class="flex items-center justify-between pt-sm">
-                            <!-- Gauche : Planifier -->
-                            <button
-                                class="flex items-center gap-xs text-on-surface-variant font-label-sm hover:text-primary transition-colors"
-                            >
-                                <span
-                                    class="material-symbols-outlined text-[18px]"
-                                    >schedule</span
-                                >
-                                Planifier
-                            </button>
-
-                            <!-- Droite : Brouillon + Envoyer -->
-                            <div class="flex items-center gap-sm">
-                                <button
-                                    @click="showDraftToast"
-                                    class="text-on-surface-variant font-label-sm hover:text-on-surface transition-colors"
-                                >
-                                    Brouillon
-                                </button>
-                                <button
-                                    class="bg-primary text-on-primary px-lg py-sm rounded-xl font-label-sm hover:opacity-90 transition-opacity"
-                                >
-                                    Envoyer maintenant
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- /Carte envoi -->
-
-                <!-- Carte prévisualisation -->
-                <div
-                    class="bg-primary/5 rounded-xl p-md border border-primary/20 flex gap-md items-center"
-                >
-                    <div
-                        class="w-12 h-12 rounded-lg bg-primary-container flex items-center justify-center text-on-primary-container shadow-sm flex-shrink-0"
-                    >
-                        <span class="material-symbols-outlined"
-                            >visibility</span
-                        >
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h5 class="font-label-sm text-primary">
-                            Prévisualisation mobile
-                        </h5>
-                        <p
-                            class="text-xs text-on-surface-variant mt-1 leading-relaxed"
-                        >
-                            Vérifiez le rendu de votre contenu sur smartphone
-                            avant l'envoi massif.
-                        </p>
-                    </div>
-                    <button
-                        class="material-symbols-outlined text-primary hover:scale-110 transition-transform flex-shrink-0"
-                    >
-                        chevron_right
-                    </button>
-                </div>
-                <!-- /Carte prévisualisation -->
-            </div>
-            <!-- /Section composer -->
+            <!-- La section d'envoi a été retirée en attendant le support backend -->
         </div>
         <!-- /Grille principale -->
 

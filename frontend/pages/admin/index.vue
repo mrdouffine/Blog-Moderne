@@ -6,9 +6,26 @@ definePageMeta({ middleware: 'auth', layout: 'admin' })
 
 useSeoMeta({ title: 'Dashboard — Admin' })
 
-const { fetchStats, stats, loading } = useArticles()
+const loading = ref(true)
+const stats = ref({
+  articles_count: 0,
+  comments_count: 0,
+  subscribers_count: 0,
+  total_views: 0
+})
 
-await fetchStats()
+const { $api } = useNuxtApp()
+
+try {
+  const res = await $api('/admin/stats')
+  if (res && res.data) {
+    stats.value = res.data
+  }
+} catch (e) {
+  console.error("Failed to load stats", e)
+} finally {
+  loading.value = false
+}
 
 // Cartes de statistiques
 const statCards = computed(() => [

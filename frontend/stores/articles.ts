@@ -30,6 +30,7 @@ export const useArticlesStore = defineStore('articles', {
     filters: {
       search: '',
       status: '',
+      category: '',
       per_page: 12,
       page: 1,
       sort_by: 'created_at',
@@ -90,6 +91,7 @@ export const useArticlesStore = defineStore('articles', {
       this.filters = {
         search: '',
         status: '',
+        category: '',
         per_page: 12,
         page: 1,
         sort_by: 'created_at',

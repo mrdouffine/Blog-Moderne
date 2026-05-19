@@ -84,26 +84,25 @@ const handleLogout = async () => {
 
             <!-- ── Actions desktop ───────────────────────────────── -->
             <div class="flex items-center gap-md">
-                <!-- Bouton Écrire (si connecté) ou non connecté -->
+                <!-- Liens de connexion et d'inscription ou avatar dropdown -->
                 <template v-if="!isAuthenticated">
-                    <NuxtLink to="/auth/login">
+                    <NuxtLink to="/auth/login" class="hidden md:block">
                         <button
-                            class="hidden md:flex items-center justify-center bg-primary text-on-primary px-6 py-2 rounded-full font-label-sm text-label-sm hover:opacity-90 active:scale-95 transition-all"
+                            class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors px-4 py-2"
                         >
-                            Se connecter
+                            Connexion
+                        </button>
+                    </NuxtLink>
+                    <NuxtLink to="/auth/register" class="hidden md:block">
+                        <button
+                            class="bg-primary text-on-primary px-6 py-2 rounded-full font-label-sm text-label-sm hover:opacity-90 active:scale-95 transition-all"
+                        >
+                            Inscription
                         </button>
                     </NuxtLink>
                 </template>
 
                 <template v-else>
-                    <!-- Bouton Écrire -->
-                    <NuxtLink v-if="isAdmin" to="/admin/articles/create">
-                        <button
-                            class="hidden md:flex items-center justify-center bg-primary text-on-primary px-6 py-2 rounded-full font-label-sm text-label-sm hover:opacity-90 active:scale-95 transition-all"
-                        >
-                            Écrire
-                        </button>
-                    </NuxtLink>
 
                     <!-- Avatar utilisateur avec dropdown -->
                     <div ref="userMenuRef" class="relative">
@@ -232,7 +231,7 @@ const handleLogout = async () => {
                                 to="/auth/register"
                                 class="block mt-xs px-3 py-2.5 rounded-full text-center font-label-sm text-label-sm bg-primary text-on-primary hover:opacity-90 transition-opacity"
                             >
-                                S'inscrire
+                                Inscription
                             </NuxtLink>
                         </template>
                         <template v-else>

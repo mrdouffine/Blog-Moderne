@@ -152,6 +152,7 @@ export interface UiState {
 export interface ArticleFilters {
   search?: string;
   status?: ArticleStatus | "";
+  category?: string;
   per_page?: number;
   page?: number;
   author_id?: number;

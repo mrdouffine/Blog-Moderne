@@ -42,11 +42,12 @@ export const useAuth = () => {
    */
   async function login(
     credentials: LoginCredentials,
-    redirectTo: string = '/'
+    redirectTo?: string
   ): Promise<void> {
     await store.login(credentials)
-    // Naviguer uniquement si le login a réussi (pas d'exception)
-    await navigateTo(redirectTo)
+    // Admins → /admin, autres → redirectTo ou accueil
+    const dest = redirectTo || (store.isAdmin ? '/admin' : '/')
+    await navigateTo(dest)
   }
 
   /**

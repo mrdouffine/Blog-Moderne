@@ -29,6 +29,11 @@ class ArticleService
             $query->where('status', $filters['status']);
         }
 
+        // Filtre par catégorie
+        if (!empty($filters['category'])) {
+            $query->where('category', $filters['category']);
+        }
+
         // Recherche full-text sur le titre et le contenu
         if (!empty($filters['search'])) {
             $search = $filters['search'];

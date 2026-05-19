@@ -43,21 +43,152 @@ useSeoMeta({
 });
 
 // ── Table of contents ─────────────────────────────────────────────────────────
-const activeSection = ref("introduction");
+const activeSection = ref("");
 
-const tocLinks = [
-    { id: "introduction", label: "Introduction" },
-    { id: "setup", label: "Configuration de Nuxt 3" },
-    { id: "integration", label: "Intégration TailwindCSS" },
-    { id: "optimisation", label: "Optimisation & Performance" },
-    { id: "conclusion", label: "Conclusion" },
-];
+/**
+ * Assainit le contenu HTML brut pour empêcher les attaques XSS.
+ * Élimine les scripts, les gestionnaires d'événements et les URLs javascript:.
+ */
+const sanitizeHtml = (html: string): string => {
+    if (!html) return "";
+    return html
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+        .replace(/\bon\w+\s*=\s*(['"])(.*?)\1/gi, "")
+        .replace(/\bon\w+\s*=\s*([^>\s]+)/gi, "")
+        .replace(/\bhref\s*=\s*(['"])javascript:(.*?)\1/gi, 'href="#"');
+};
 
-// IntersectionObserver côté client
-onMounted(() => {
-    if (typeof IntersectionObserver === "undefined") return;
+const parsedContent = computed(() => {
+    if (!article.value || !article.value.content) return "";
+    
+    let content = sanitizeHtml(article.value.content);
+    const headingRegex = /<h([23])([^>]*)>(.*?)<\/h\1>/gi;
+    
+    let index = 0;
+    return content.replace(headingRegex, (match, level, attrs, text) => {
+        if (attrs.includes("id=")) return match;
+        
+        const label = text.replace(/<\/?[^>]+(>|$)/g, "").trim();
+        const id = label
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/(^-|-$)/g, "");
+        
+        return `<h${level}${attrs} id="${id || `heading-${index++}`}">${text}</h${level}>`;
+    });
+});
 
-    const observer = new IntersectionObserver(
+const tocLinks = computed(() => {
+    if (!article.value || !article.value.content) return [];
+    
+    const links: { id: string; label: string }[] = [];
+    const content = article.value.content;
+    const headingRegex = /<h([23])([^>]*)>(.*?)<\/h\1>/gi;
+    
+    let index = 0;
+    let match;
+    while ((match = headingRegex.exec(content)) !== null) {
+        const text = match[3];
+        const label = text.replace(/<\/?[^>]+(>|$)/g, "").trim();
+        const id = label
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/(^-|-$)/g, "");
+            
+        links.push({
+            id: id || `heading-${index++}`,
+            label: label
+        });
+    }
+    
+    return links;
+});
+
+const scrollTo = (id: string) => {
+    if (import.meta.client) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.scrollIntoView({ behavior: "smooth" });
+        }
+    }
+};
+
+const isBookmarked = ref(false);
+const toastMessage = ref("");
+const showToast = ref(false);
+
+const triggerToast = (msg: string) => {
+    toastMessage.value = msg;
+    showToast.value = true;
+    setTimeout(() => {
+        showToast.value = false;
+    }, 3000);
+};
+
+const toggleBookmark = () => {
+    if (!import.meta.client) return;
+    const bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
+    if (bookmarks.includes(slug)) {
+        const index = bookmarks.indexOf(slug);
+        bookmarks.splice(index, 1);
+        isBookmarked.value = false;
+        triggerToast("Article retiré de vos favoris !");
+    } else {
+        bookmarks.push(slug);
+        isBookmarked.value = true;
+        triggerToast("Article ajouté à vos favoris !");
+    }
+    localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
+};
+
+const showShareMenu = ref(false);
+
+const toggleShareMenu = () => {
+    showShareMenu.value = !showShareMenu.value;
+};
+
+const shareWhatsApp = () => {
+    if (!import.meta.client) return;
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent((article.value?.title ?? '') + ' ' + window.location.href)}`;
+    window.open(url, '_blank');
+    showShareMenu.value = false;
+    triggerToast("Lien envoyé vers WhatsApp !");
+};
+
+const shareEmail = () => {
+    if (!import.meta.client) return;
+    const subject = encodeURIComponent(article.value?.title ?? 'Article BlogModerne');
+    const body = encodeURIComponent(`Découvrez cet article sur BlogModerne : ${window.location.href}`);
+    const url = `mailto:?subject=${subject}&body=${body}`;
+    window.open(url, '_self');
+    showShareMenu.value = false;
+    triggerToast("Ouverture de votre client e-mail !");
+};
+
+const copyLink = () => {
+    if (!import.meta.client) return;
+    navigator.clipboard.writeText(window.location.href).then(() => {
+        triggerToast("Lien de l'article copié dans le presse-papiers !");
+    }).catch(() => {
+        triggerToast("Impossible de copier le lien.");
+    });
+    showShareMenu.value = false;
+};
+
+let observer: IntersectionObserver | null = null;
+
+const observeHeaders = () => {
+    if (typeof IntersectionObserver === "undefined" || !import.meta.client) return;
+    
+    if (observer) {
+        observer.disconnect();
+    }
+    
+    observer = new IntersectionObserver(
         (entries) => {
             for (const entry of entries) {
                 if (entry.isIntersecting) {
@@ -67,13 +198,29 @@ onMounted(() => {
         },
         { rootMargin: "-20% 0px -70% 0px" },
     );
-
-    tocLinks.forEach(({ id }) => {
+    
+    tocLinks.value.forEach(({ id }) => {
         const el = document.getElementById(id);
-        if (el) observer.observe(el);
+        if (el) observer!.observe(el);
     });
+};
 
-    onUnmounted(() => observer.disconnect());
+onMounted(() => {
+    observeHeaders();
+    if (import.meta.client) {
+        const bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
+        isBookmarked.value = bookmarks.includes(slug);
+    }
+});
+
+watch(article, () => {
+    nextTick(() => {
+        observeHeaders();
+    });
+});
+
+onUnmounted(() => {
+    if (observer) observer.disconnect();
 });
 
 // ── Commentaire form ─────────────────────────────────────────────────────────
@@ -86,6 +233,26 @@ const onSubmitComment = async () => {
     await addComment(article.value.id, commentText.value.trim());
     commentText.value = "";
     commentLoading.value = false;
+};
+
+const startReply = (comment: any) => {
+    if (!authStore.isAuthenticated) {
+        triggerToast("Veuillez vous connecter pour répondre à un commentaire.");
+        navigateTo("/auth/login");
+        return;
+    }
+    
+    // Remplir le champ de commentaire avec la mention de l'auteur
+    commentText.value = `@${comment.author?.name || 'Membre'} : `;
+    
+    // Défiler vers le champ de saisie du commentaire
+    const element = document.getElementById("comment-input");
+    if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => {
+            element.focus();
+        }, 300);
+    }
 };
 
 // ── Helpers formatage ────────────────────────────────────────────────────────
@@ -118,84 +285,6 @@ function authorInitial(name: string): string {
 <template>
     <div class="bg-surface min-h-screen font-body-md text-on-surface">
         <!-- ══════════════════════════════════════════════════════════════════════
-         1. TOP NAV BAR
-         ══════════════════════════════════════════════════════════════════════ -->
-        <header
-            class="sticky top-0 z-50 h-16 bg-surface/80 backdrop-blur-md border-b border-outline-variant"
-        >
-            <div
-                class="max-w-container-max mx-auto px-sm md:px-lg h-full flex items-center justify-between gap-md"
-            >
-                <!-- Logo -->
-                <NuxtLink
-                    to="/"
-                    class="font-display-lg text-display-lg-mobile text-on-surface tracking-tight shrink-0"
-                >
-                    BlogModerne
-                </NuxtLink>
-
-                <!-- Nav desktop -->
-                <nav class="hidden md:flex items-center gap-lg">
-                    <NuxtLink
-                        to="/"
-                        class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors"
-                    >
-                        Accueil
-                    </NuxtLink>
-                    <NuxtLink
-                        to="/articles"
-                        class="font-label-sm text-label-sm text-primary border-b-2 border-primary pb-px"
-                    >
-                        Articles
-                    </NuxtLink>
-                    <NuxtLink
-                        to="/a-propos"
-                        class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors"
-                    >
-                        À propos
-                    </NuxtLink>
-                </nav>
-
-                <!-- Actions -->
-                <div class="flex items-center gap-sm">
-                    <NuxtLink
-                        v-if="authStore.isAuthor || authStore.isAdmin"
-                        to="/admin/articles/create"
-                        class="hidden sm:inline-flex items-center gap-xs bg-primary text-on-primary rounded-full px-md py-xs font-label-sm text-label-sm hover:opacity-90 transition-opacity"
-                    >
-                        Écrire
-                    </NuxtLink>
-                    <!-- Avatar -->
-                    <button
-                        v-if="authStore.isAuthenticated"
-                        class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-label-sm text-label-sm shrink-0 overflow-hidden"
-                    >
-                        <img
-                            v-if="authStore.user?.avatar"
-                            :src="authStore.user.avatar"
-                            :alt="authStore.user.name"
-                            class="w-full h-full object-cover"
-                        />
-                        <span v-else>{{
-                            authorInitial(authStore.user?.name ?? "")
-                        }}</span>
-                    </button>
-                    <NuxtLink
-                        v-else
-                        to="/auth/login"
-                        class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-high transition-colors"
-                        aria-label="Se connecter"
-                    >
-                        <span
-                            class="material-symbols-outlined text-[20px] text-on-surface-variant"
-                            >person</span
-                        >
-                    </NuxtLink>
-                </div>
-            </div>
-        </header>
-
-        <!-- ══════════════════════════════════════════════════════════════════════
          2. MAIN CONTENT
          ══════════════════════════════════════════════════════════════════════ -->
         <main class="max-w-container-max mx-auto px-sm md:px-lg py-md">
@@ -218,7 +307,7 @@ function authorInitial(name: string): string {
                 <span class="material-symbols-outlined text-[16px] text-outline"
                     >chevron_right</span
                 >
-                <span class="text-primary font-bold">Développement</span>
+                <span class="text-primary font-bold">{{ article?.category || 'Général' }}</span>
             </nav>
 
             <!-- ── Layout grid 12 colonnes ─────────────────────────────────────── -->
@@ -247,11 +336,7 @@ function authorInitial(name: string): string {
                                 ]"
                                 @click.prevent="
                                     activeSection = link.id;
-                                    document
-                                        .getElementById(link.id)
-                                        ?.scrollIntoView({
-                                            behavior: 'smooth',
-                                        });
+                                    scrollTo(link.id);
                                 "
                             >
                                 {{ link.label }}
@@ -268,30 +353,72 @@ function authorInitial(name: string): string {
                     >
                         Partager l'article
                     </p>
-                    <div class="flex items-center gap-sm">
+                    <div class="flex items-center gap-sm relative">
+                        <!-- Dropdown wrapper -->
+                        <div class="relative">
+                            <button
+                                class="w-10 h-10 rounded-full bg-surface-container hover:bg-surface-container-high transition-colors flex items-center justify-center active:scale-95 transition-all duration-200"
+                                aria-label="Partager"
+                                @click="toggleShareMenu"
+                            >
+                                <span
+                                    class="material-symbols-outlined text-[20px] text-on-surface-variant"
+                                    >share</span
+                                >
+                            </button>
+
+                            <!-- Premium Dropdown Menu -->
+                            <Transition
+                                enter-active-class="transition duration-150 ease-out transform"
+                                enter-from-class="scale-95 opacity-0 -translate-y-2"
+                                enter-to-class="scale-100 opacity-100 translate-y-0"
+                                leave-active-class="transition duration-100 ease-in transform"
+                                leave-from-class="scale-100 opacity-100 translate-y-0"
+                                leave-to-class="scale-95 opacity-0 -translate-y-2"
+                            >
+                                <div
+                                    v-if="showShareMenu"
+                                    class="absolute left-0 mt-xs z-30 bg-surface-container-lowest border border-outline-variant/50 rounded-xl p-xs shadow-xl w-48 flex flex-col gap-3xs backdrop-blur-md"
+                                >
+                                    <button
+                                        @click="shareWhatsApp"
+                                        class="flex items-center gap-xs px-sm py-2 hover:bg-surface-container-high rounded-lg text-left text-body-sm transition-colors text-on-surface w-full"
+                                    >
+                                        <svg class="w-4 h-4 text-emerald-600 fill-current shrink-0" viewBox="0 0 24 24">
+                                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.73-1.45L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.965C16.588 1.977 14.12 .953 11.5 1.033c-5.439 0-9.863 4.37-9.867 9.8-.001 1.774.475 3.505 1.378 5.081L2.015 21.5l5.807-1.52c-1.563 1.157-1.042 1.107-.175.174z"/>
+                                        </svg>
+                                        WhatsApp
+                                    </button>
+                                    <button
+                                        @click="shareEmail"
+                                        class="flex items-center gap-xs px-sm py-2 hover:bg-surface-container-high rounded-lg text-left text-body-sm transition-colors text-on-surface w-full"
+                                    >
+                                        <span class="material-symbols-outlined text-[16px] text-primary shrink-0">mail</span>
+                                        Email
+                                    </button>
+                                    <button
+                                        @click="copyLink"
+                                        class="flex items-center gap-xs px-sm py-2 hover:bg-surface-container-high rounded-lg text-left text-body-sm transition-colors text-on-surface w-full"
+                                    >
+                                        <span class="material-symbols-outlined text-[16px] text-on-surface-variant shrink-0">content_copy</span>
+                                        Copier le lien
+                                    </button>
+                                </div>
+                            </Transition>
+                        </div>
                         <button
-                            class="w-10 h-10 rounded-full bg-surface-container hover:bg-surface-container-high transition-colors flex items-center justify-center"
-                            aria-label="Partager"
-                            @click="
-                                navigator.share?.({
-                                    title: article?.title,
-                                    url: $route.fullPath,
-                                })
-                            "
+                            class="w-10 h-10 rounded-full bg-surface-container hover:bg-surface-container-high transition-colors flex items-center justify-center transition-all duration-300"
+                            :class="{ 'scale-110 bg-primary-container': isBookmarked }"
+                            :aria-label="isBookmarked ? 'Retirer des favoris' : 'Sauvegarder en favoris'"
+                            @click="toggleBookmark"
                         >
                             <span
-                                class="material-symbols-outlined text-[20px] text-on-surface-variant"
-                                >share</span
+                                class="material-symbols-outlined text-[20px] transition-colors duration-300"
+                                :class="isBookmarked ? 'text-primary' : 'text-on-surface-variant'"
+                                :style="isBookmarked ? 'font-variation-settings: \'FILL\' 1' : ''"
                             >
-                        </button>
-                        <button
-                            class="w-10 h-10 rounded-full bg-surface-container hover:bg-surface-container-high transition-colors flex items-center justify-center"
-                            aria-label="Sauvegarder"
-                        >
-                            <span
-                                class="material-symbols-outlined text-[20px] text-on-surface-variant"
-                                >bookmark</span
-                            >
+                                bookmark
+                            </span>
                         </button>
                     </div>
                 </aside>
@@ -355,7 +482,7 @@ function authorInitial(name: string): string {
                                 <span
                                     class="inline-block px-sm py-1 bg-primary-container text-on-primary-container rounded-full font-label-sm text-label-sm mb-md"
                                 >
-                                    Développement
+                                    {{ article?.category || 'Général' }}
                                 </span>
 
                                 <!-- Titre h1 -->
@@ -455,8 +582,8 @@ function authorInitial(name: string): string {
                             <img
                                 v-if="article.cover_image"
                                 :src="article.cover_image"
-                                :alt="article.title"
-                                class="w-full h-auto rounded-xl shadow-md mb-xl object-cover"
+                                alt=""
+                                class="w-full h-auto rounded-xl shadow-md mb-xl object-cover bg-surface-container-highest"
                                 loading="lazy"
                             />
                             <div
@@ -472,7 +599,7 @@ function authorInitial(name: string): string {
                             <!-- Corps prose -->
                             <div
                                 class="font-body-md text-body-md text-on-surface-variant article-prose"
-                                v-html="article.content"
+                                v-html="parsedContent"
                             />
 
                             <!-- ── Section commentaires ─────────────────────────────── -->
@@ -488,7 +615,8 @@ function authorInitial(name: string): string {
 
                                 <!-- Formulaire de commentaire -->
                                 <form
-                                    class="bg-surface-container-low p-md rounded-xl mb-xl"
+                                    v-if="authStore.isAuthenticated"
+                                    class="bg-surface-container-low p-md rounded-xl mb-xl border border-outline-variant/20"
                                     @submit.prevent="onSubmitComment"
                                 >
                                     <label
@@ -519,6 +647,30 @@ function authorInitial(name: string): string {
                                         </button>
                                     </div>
                                 </form>
+
+                                <!-- Fallback non connecté -->
+                                <div
+                                    v-else
+                                    class="bg-surface-container-low p-lg rounded-xl mb-xl border border-outline-variant/30 text-center flex flex-col items-center gap-md"
+                                >
+                                    <span class="material-symbols-outlined text-[40px] text-primary/80">
+                                        chat_bubble
+                                    </span>
+                                    <div class="flex flex-col gap-xs">
+                                        <p class="font-headline-sm text-headline-sm text-on-surface">
+                                            Rejoignez la discussion
+                                        </p>
+                                        <p class="font-body-md text-body-md text-on-surface-variant max-w-[400px]">
+                                            Vous devez être connecté pour publier un commentaire et échanger avec la communauté.
+                                        </p>
+                                    </div>
+                                    <NuxtLink
+                                        to="/auth/login"
+                                        class="bg-primary text-on-primary px-lg py-2.5 rounded-full font-label-sm text-label-sm hover:opacity-90 transition-all shadow-sm hover:shadow"
+                                    >
+                                        Se connecter
+                                    </NuxtLink>
+                                </div>
 
                                 <!-- Liste des commentaires -->
                                 <div
@@ -617,6 +769,7 @@ function authorInitial(name: string): string {
                                                 <button
                                                     class="mt-sm font-label-sm text-label-sm text-primary hover:underline ml-sm"
                                                     type="button"
+                                                    @click="startReply(comment)"
                                                 >
                                                     Répondre
                                                 </button>
@@ -745,8 +898,8 @@ function authorInitial(name: string): string {
                             <img
                                 v-if="related.cover_image"
                                 :src="related.cover_image"
-                                :alt="related.title"
-                                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                alt=""
+                                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 bg-surface-container-highest"
                                 loading="lazy"
                             />
                             <div
@@ -765,7 +918,7 @@ function authorInitial(name: string): string {
                             <span
                                 class="block font-label-sm text-label-sm text-primary mb-xs"
                             >
-                                Développement
+                                {{ related.category || 'Général' }}
                             </span>
                             <h3
                                 class="text-[20px] font-bold leading-snug text-on-surface group-hover:text-primary transition-colors mb-xs line-clamp-2"
@@ -789,58 +942,25 @@ function authorInitial(name: string): string {
             </div>
         </section>
 
-        <!-- ══════════════════════════════════════════════════════════════════════
-         4. FOOTER
-         ══════════════════════════════════════════════════════════════════════ -->
-        <footer
-            class="bg-surface-container-lowest border-t border-outline-variant py-xl"
+
+
+        <!-- Floating premium toast -->
+        <Transition
+            enter-active-class="transition duration-300 ease-out transform"
+            enter-from-class="translate-y-10 opacity-0"
+            enter-to-class="translate-y-0 opacity-100"
+            leave-active-class="transition duration-200 ease-in transform"
+            leave-from-class="translate-y-0 opacity-100"
+            leave-to-class="translate-y-10 opacity-0"
         >
             <div
-                class="max-w-container-max mx-auto px-sm md:px-lg flex flex-col items-center gap-md text-center"
+                v-if="showToast"
+                class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-neutral-900/90 text-neutral-50 px-md py-sm rounded-xl shadow-2xl flex items-center gap-sm font-label-md text-label-md backdrop-blur-md border border-neutral-800"
             >
-                <!-- Logo -->
-                <NuxtLink
-                    to="/"
-                    class="font-display-lg text-display-lg-mobile text-on-surface"
-                >
-                    BlogModerne
-                </NuxtLink>
-
-                <!-- Liens légaux -->
-                <nav class="flex flex-wrap items-center justify-center gap-md">
-                    <NuxtLink
-                        to="/mentions-legales"
-                        class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors"
-                    >
-                        Mentions légales
-                    </NuxtLink>
-                    <NuxtLink
-                        to="/confidentialite"
-                        class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors"
-                    >
-                        Confidentialité
-                    </NuxtLink>
-                    <NuxtLink
-                        to="/contact"
-                        class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors"
-                    >
-                        Contact
-                    </NuxtLink>
-                    <NuxtLink
-                        to="/articles"
-                        class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors"
-                    >
-                        Articles
-                    </NuxtLink>
-                </nav>
-
-                <!-- Copyright -->
-                <p class="font-label-sm text-label-sm text-on-surface-variant">
-                    © {{ new Date().getFullYear() }} BlogModerne. Tous droits
-                    réservés.
-                </p>
+                <span class="material-symbols-outlined text-[20px] text-primary">info</span>
+                {{ toastMessage }}
             </div>
-        </footer>
+        </Transition>
     </div>
 </template>
 

@@ -179,7 +179,11 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
 
       try {
-        const response = await this._api()<ApiResponse<User>>('/auth/me')
+        const options: any = {}
+        if (this.token) {
+          options.headers = { Authorization: `Bearer ${this.token}` }
+        }
+        const response = await this._api()<ApiResponse<User>>('/auth/me', options)
         this.user = response.data
       } catch (err: unknown) {
         this.error = _extractErrorMessage(err, 'Impossible de récupérer le profil')

@@ -29,7 +29,7 @@ export default defineNuxtPlugin((nuxtApp) => {
    *  - Intercepteur `onResponseError` → gère 401 et 403
    */
   const api = $fetch.create({
-    baseURL: config.public.apiUrl as string,
+    baseURL: import.meta.server ? config.apiUrl : (config.public.apiUrl as string),
 
     // --- Intercepteur requête -----------------------------------------------
     onRequest({ options }) {

@@ -22,6 +22,7 @@ const form = reactive({
   title:   props.article?.title   ?? '',
   excerpt: props.article?.excerpt ?? '',
   content: props.article?.content ?? '',
+  category: props.article?.category ?? 'Général',
   status:  (props.article?.status ?? 'draft') as 'published' | 'draft',
 })
 
@@ -59,6 +60,7 @@ const onSubmit = () => {
   fd.append('title',   form.title)
   fd.append('excerpt', form.excerpt)
   fd.append('content', form.content)
+  fd.append('category', form.category)
   fd.append('status',  form.status)
   if (coverFile.value) fd.append('cover_image', coverFile.value)
   // En mode édition, Laravel nécessite _method pour PUT via FormData
@@ -73,6 +75,7 @@ watch(() => props.article, (a) => {
   form.title   = a.title
   form.excerpt = a.excerpt
   form.content = a.content
+  form.category = a.category ?? 'Général'
   form.status  = a.status
   coverPreview.value = a.cover_image ?? null
 })
@@ -107,6 +110,27 @@ watch(() => props.article, (a) => {
         ]"
       />
       <p v-if="errors.excerpt" class="mt-1 text-xs text-red-600">{{ errors.excerpt }}</p>
+    </div>
+
+    <!-- Catégorie -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1.5">
+        Catégorie <span class="text-red-500">*</span>
+      </label>
+      <select
+        v-model="form.category"
+        class="w-full bg-white border border-gray-300 rounded-lg p-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+      >
+        <option>Histoire & Société</option>
+        <option>Gastronomie</option>
+        <option>Voyage & Nature</option>
+        <option>Cuisine Végétale</option>
+        <option>Économie</option>
+        <option>Nutrition</option>
+        <option>Santé Intime</option>
+        <option>Jardinage</option>
+        <option>Général</option>
+      </select>
     </div>
 
     <!-- Contenu complet -->

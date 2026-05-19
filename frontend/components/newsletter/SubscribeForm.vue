@@ -71,11 +71,11 @@ const onSubmit = async () => {
             <button
                 type="submit"
                 :disabled="loading"
-                class="w-full py-2.5 bg-secondary text-on-secondary font-label-sm text-label-sm rounded-lg hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-xs"
+                class="w-full py-2.5 bg-white text-primary font-bold font-label-sm text-label-sm rounded-lg hover:bg-white/90 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-xs shadow-sm"
             >
                 <span
                     v-if="loading"
-                    class="material-symbols-outlined text-[18px] animate-spin"
+                    class="material-symbols-outlined text-[18px] text-primary animate-spin"
                     >progress_activity</span
                 >
                 {{ loading ? "En cours..." : "S'abonner" }}

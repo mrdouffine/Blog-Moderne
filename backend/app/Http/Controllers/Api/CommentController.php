@@ -16,6 +16,38 @@ use Illuminate\Http\Request;
 class CommentController extends Controller
 {
     /**
+     * Retourne TOUS les commentaires (admin) — une seule requête.
+     */
+    public function adminIndex(Request $request): JsonResponse
+    {
+        $comments = Comment::with(['user', 'article'])
+            ->latest()
+            ->paginate((int) $request->query('per_page', 30));
+
+        return response()->json([
+            'success' => true,
+            'data'    => $comments->map(fn($c) => [
+                'id'          => $c->id,
+                'content'     => $c->content,
+                'is_approved' => (bool) $c->is_approved,
+                'created_at'  => $c->created_at,
+                'user'        => $c->user ? ['id' => $c->user->id, 'name' => $c->user->name] : null,
+                'article'     => $c->article ? [
+                    'id'    => $c->article->id,
+                    'title' => $c->article->title,
+                    'slug'  => $c->article->slug,
+                ] : null,
+            ]),
+            'meta' => [
+                'current_page' => $comments->currentPage(),
+                'last_page'    => $comments->lastPage(),
+                'total'        => $comments->total(),
+            ],
+            'message' => 'Commentaires récupérés.',
+        ], 200);
+    }
+
+    /**
      * Retourne la liste des commentaires approuvés d'un article donné.
      *
      * @param Article $article
@@ -36,6 +68,7 @@ class CommentController extends Controller
         ], 200);
     }
 
+
     /**
      * Crée un nouveau commentaire associé à un article et à l'utilisateur authentifié.
      *
@@ -48,8 +81,8 @@ class CommentController extends Controller
         $content = $request->input('content') ?? $request->input('body');
         $user = $request->user();
 
-        // Auto-approbation si l'utilisateur est admin ou auteur de l'article/plateforme
-        $isApproved = in_array($user->role, ['admin', 'author']);
+        // Auto-approbation totale pour tous les utilisateurs authentifiés
+        $isApproved = true;
 
         $comment = $article->comments()->create([
             'user_id'     => $user->id,
@@ -92,8 +125,8 @@ class CommentController extends Controller
 
         $content = $request->input('content') ?? $request->input('body');
 
-        // Repasser en attente de modération après modification, sauf si c'est un admin ou un auteur
-        $isApproved = in_array($user->role, ['admin', 'author']);
+        // Toujours approuvé après modification
+        $isApproved = true;
 
         $comment->update([
             'content'     => $content,
