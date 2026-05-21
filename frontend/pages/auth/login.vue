@@ -6,6 +6,7 @@ definePageMeta({ middleware: "guest", layout: false });
 
 useSeoMeta({ title: "Connexion — BlogModerne" });
 
+const route = useRoute();
 const { login, loading } = useAuth();
 
 const showPassword = ref(false);
@@ -30,8 +31,6 @@ onMounted(() => {
             }
         });
     }
-
-    const route = useRoute();
     if (route.query.error) {
         if (route.query.error === "oauth_failed") {
             apiError.value = "La connexion sociale a échoué. Veuillez réessayer.";
@@ -57,7 +56,11 @@ const onSubmit = async () => {
         const redirectTo = route.query.redirect as string || undefined;
         await login({ email: form.email, password: form.password }, redirectTo);
     } catch (e: any) {
-        apiError.value = e?.message ?? "Identifiants invalides.";
+        if (e?.response?.status === 401) {
+            apiError.value = "Identifiants incorrects.";
+        } else {
+            apiError.value = e?.response?._data?.message ?? "Identifiants incorrects.";
+        }
     }
 };
 

@@ -38,7 +38,7 @@ const onSubmit = async () => {
         await register({ ...form, password_confirmation: form.password });
         navigateTo("/");
     } catch (e: any) {
-        apiError.value = e?.message ?? "Erreur lors de l'inscription.";
+        apiError.value = e?.response?._data?.message ?? "Erreur lors de l'inscription.";
     }
 };
 
